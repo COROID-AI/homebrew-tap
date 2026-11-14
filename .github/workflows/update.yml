@@ -1,0 +1,43 @@
+name: Update the formula
+
+# Takes the newest @coroid/connector from npm into the formula, but only a
+# release whose package is attested by COROID-AI/coroid-connector's Release
+# workflow. Nothing else may become what `brew install` gets.
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: The newest release, verified
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(npm view @coroid/connector version)"
+          current="$(sed -n 's|.*connector-\(.*\)\.tgz".*|\1|p' Formula/coroid-connector.rb)"
+          if [ "$version" = "$current" ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          curl -fsSLO "https://registry.npmjs.org/@coroid/connector/-/connector-${version}.tgz"
+          # npm names the packed file connector-<version>.tgz; the release workflow attested coroid-connector-<version>.tgz, the same bytes.
+          gh attestation verify "connector-${version}.tgz" --repo COROID-AI/coroid-connector \
+            --signer-workflow COROID-AI/coroid-connector/.github/workflows/release.yml
+          {
+            echo "version=${version}"
+            echo "sha256=$(sha256sum "connector-${version}.tgz" | cut -d' ' -f1)"
+            echo "changed=true"
+          } >> "$GITHUB_OUTPUT"
+      - name: Update and commit
+        if: steps.release.outputs.changed == 'true'
+        run: |
+          sed -i -E "s|connector-[^\"]+\.tgz\"|connector-${{ steps.release.outputs.version }}.tgz\"|; s|sha256 \"[0-9a-f]{64}\"|sha256 \"${{ steps.release.outputs.sha256 }}\"|" Formula/coroid-connector.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "coroid-connector ${{ steps.release.outputs.version }}"
+          git push
