@@ -3,8 +3,8 @@
 class CoroidConnector < Formula
   desc "Lets the coding agents on your machine do work CoRoid assigns to them"
   homepage "https://github.com/COROID-AI/coroid-connector"
-  url "https://registry.npmjs.org/@coroid/connector/-/connector-0.6.0.tgz"
-  sha256 "35d3ef65eb0806ecc1442358cf6997f39b9263376a8ec09d574afaa2b249197c"
+  url "https://registry.npmjs.org/@coroid/connector/-/connector-0.7.0.tgz"
+  sha256 "fe837e5c1bc89049da8c92f2dab31aed2c9e916cf06e3b749ab6da0e4fac93ab"
   license "Apache-2.0"
 
   depends_on "node"
